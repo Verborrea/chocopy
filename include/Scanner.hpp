@@ -10,6 +10,13 @@ class Scanner
 private:
     std::fstream input_file;
     std::string current_line;
+    size_t line_pos;
+
+    bool nextLine();
+
+    char currChar();
+    char peakChar();
+    char nextChar();
 
 public:
     Scanner(std::string filepath);

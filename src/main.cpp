@@ -11,8 +11,8 @@ int main(int argc, char *argv[])
     bool debug = false;
 
     if (argc == 3) {
-        if (argv[2] != "-d") {
-            std::cout << "error: " << argv[1] << "is not a valid flag"
+        if (strcmp(argv[2],"-d") != 0) {
+            std::cout << "error: " << argv[2] << " is not a valid flag"
                 << std::endl;
             return 1;
         }

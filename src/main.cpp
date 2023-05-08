@@ -1,7 +1,5 @@
 #include "Scanner.hpp"
 
-#include <iostream>
-
 int main(int argc, char *argv[])
 {
     if (argc != 2){
@@ -9,12 +7,11 @@ int main(int argc, char *argv[])
         return 1;
     }
     std::string input_file = argv[1];
-    Scanner S(input_file);
+    Scanner S(input_file, true);
 
     Token t = S.nextToken();
-    while (t.lex != "EOF")
+    while (t.pos != "EOF")
     {
-        std::cout << t.lex << std::endl;
         t = S.nextToken();
     } 
 

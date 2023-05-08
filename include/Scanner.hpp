@@ -4,6 +4,7 @@
 #include "Token.hpp"
 
 #include <fstream>
+#include <iostream>
 
 class Scanner
 {
@@ -12,14 +13,19 @@ private:
     std::string current_line;
     size_t line_pos;
 
-    bool nextLine();
+    // flags
+    bool debug;     // indica modo debug
+    bool eof;       // indica fin de input_file
 
-    char currChar();
-    char peakChar();
-    char nextChar();
+    void nextLine();
+
+    int currChar();
+    int moveChar();
 
 public:
-    Scanner(std::string filepath);
+    static const int NEWLINE = -2;
+
+    Scanner(std::string filepath, bool d_mode);
     ~Scanner();
 
     Token nextToken();

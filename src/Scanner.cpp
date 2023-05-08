@@ -1,9 +1,10 @@
 #include "Scanner.hpp"
 
-Scanner::Scanner(std::string filepath)
+Scanner::Scanner(std::string filepath, bool d_mode)
 {
     input_file.open(filepath);
-    line_pos = 0;
+    nextLine();
+    debug = d_mode;
 }
 
 Scanner::~Scanner()
@@ -11,31 +12,53 @@ Scanner::~Scanner()
     input_file.close();
 }
 
-bool Scanner::nextLine()
+void Scanner::nextLine()
 {
     line_pos = 0;
-    return (bool)std::getline(input_file, current_line);
+    if (!std::getline(input_file, current_line))
+        eof = true;
 }
 
-inline char Scanner::currChar()
+inline int Scanner::currChar()
 {
+    if (eof)
+        return EOF;
+    if (line_pos == current_line.size())
+        return NEWLINE;
     return current_line[line_pos];
 }
 
-inline char Scanner::peakChar()
+inline int Scanner::moveChar()
 {
-    return current_line[line_pos + 1];
-}
-
-inline char Scanner::nextChar()
-{
-    return current_line[++line_pos];
+    line_pos++;
+    if (line_pos > current_line.size())
+        nextLine();
+    return currChar();
 }
 
 Token Scanner::nextToken()
 {
-    if (nextLine())
-        return Token("LINE", current_line);
+    Token t;
+    if (currChar() == EOF)
+    {
+        t.set("EOF","EOF");
+    }
+    else if (currChar() == NEWLINE)
+    {
+        moveChar();
+        t.set("NEWLINE","NEWLINE");
+    }
     else
-        return Token("EOF","EOF");
+    {
+        char ch = (char)currChar();
+        moveChar();
+        t.set("CHAR",std::string(1, ch));
+    }
+
+    if (debug)
+    {
+        std::cout << t.pos << "\t[" << t.lex << "]" << std::endl;
+    }
+
+    return t;
 }

@@ -12,6 +12,11 @@ Scanner::~Scanner()
     input_file.close();
 }
 
+void Scanner::throwError(std::string msg)
+{
+    std::cerr << "Error: " << msg << std::endl;
+}
+
 void Scanner::nextLine()
 {
     line_pos = 0;
@@ -51,8 +56,66 @@ Token Scanner::nextToken()
     else
     {
         char ch = (char)currChar();
-        moveChar();
-        t.set("CHAR",std::string(1, ch));
+
+        // operadores y delimitadores
+        switch (ch)
+        {
+        case '+': t.set("BIN_OP","+"); moveChar(); break;
+        case '*': t.set("BIN_OP","*"); moveChar(); break;
+        case '%': t.set("BIN_OP","%"); moveChar(); break;
+        case '(': t.set("OPEN_PAR","("); moveChar(); break;
+        case ')': t.set("CLO_PAR",")"); moveChar(); break;
+        case '[': t.set("OPEN_BRA","["); moveChar(); break;
+        case ']': t.set("CLO_BRA","]"); moveChar(); break;
+        case ',': t.set("COMMA",","); moveChar(); break;
+        case ':': t.set("TWO_DOTS",":"); moveChar(); break;
+        case '.': t.set("DOT","."); moveChar(); break;
+        case '/':
+            if (moveChar() == '/') {
+                t.set("BIN_OP","//"); moveChar();
+            }
+            else
+                throwError("/ no es un operador válido.");
+            break;
+        case '!':
+            if (moveChar() == '=') {
+                t.set("BIN_OP","!="); moveChar();
+            }
+            else
+                throwError("! no es un operador válido.");
+            break;
+        case '-':
+            if (moveChar() == '>') {
+                t.set("BIN_OP","->"); moveChar();
+            }
+            else
+                t.set("ASSING","-");
+            break;
+        case '=':
+            if (moveChar() == '=') {
+                t.set("BIN_OP","=="); moveChar();
+            }
+            else
+                t.set("ASSING","=");
+            break;
+        case '<':
+            if (moveChar() == '=') {
+                t.set("BIN_OP","<="); moveChar();
+            }
+            else
+                t.set("BIN_OP","<");
+            break;
+        case '>':
+            if (moveChar() == '=') {
+                t.set("BIN_OP",">="); moveChar();
+            }
+            else
+                t.set("BIN_OP",">");
+            break;
+        default:
+            t.set("CHAR",std::string(1, ch));
+            moveChar();
+        }
     }
 
     if (debug)

@@ -17,6 +17,7 @@ private:
     bool debug;     // indica modo debug
     bool eof;       // indica fin de input_file
 
+    void throwError(std::string msg);
     void nextLine();
 
     int currChar();

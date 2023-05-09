@@ -59,8 +59,8 @@ Token Scanner::nextToken()
     }
     else if (currChar() == NEWLINE)
     {
-        moveChar();
         t.set("NEWLINE","");
+        moveChar();
     }
     else
     {
@@ -79,6 +79,28 @@ Token Scanner::nextToken()
                 throwError("Un entero no puede ser mayor que 2147483647");
             else
                 t.set("INTEGER",entero);
+        }
+
+        // cadenas
+        if (ch == '\"')
+        {
+            bool not_recognized = false;
+            std::string cadena;
+            while (moveChar() != '\"') {
+                if (currChar() == '\\'){
+                    if (moveChar() != '\"') {
+                        std::string cad = "\\";
+                        cad += currChar();
+                        not_recognized = true;
+                        token_col = line_pos;
+                        throwError(cad + " no reconocido");
+                    }
+                }
+                cadena += currChar();
+            }
+            if (!not_recognized)
+                t.set("STRING",cadena);
+            moveChar();
         }
 
         // operadores y delimitadores

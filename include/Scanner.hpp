@@ -12,6 +12,9 @@ private:
     std::fstream input_file;
     std::string current_line;
     size_t line_pos;
+    size_t line_count;
+    size_t token_row;
+    size_t token_col;
 
     // flags
     bool debug;     // indica modo debug

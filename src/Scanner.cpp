@@ -1,5 +1,14 @@
 #include "Scanner.hpp"
 
+std::vector<std::string> keywords = {
+    "False", "None", "True", "and", "as", "assert",
+    "async", "await", "break", "class", "continue",
+    "def", "del", "elif", "else", "except", "finally",
+    "for", "from", "global", "if", "import", "in", "is",
+    "lambda", "nonlocal", "not", "or", "pass", "raise",
+    "return", "try", "while", "with", "yield"
+};
+
 Scanner::Scanner(std::string filepath, bool d_mode)
 {
     input_file.open(filepath);
@@ -66,12 +75,27 @@ Token Scanner::nextToken()
     {
         char ch = (char)currChar();
 
+        // ids & keywords
+        if (isalpha(currChar()))
+        {
+            std::string id(1,ch);
+            while (isalnum(moveChar()) || currChar() == '_') {
+                id += currChar();
+            }
+            t.set("IDNTF", id);
+            for (size_t i = 0; i < keywords.size(); i++)
+                if (keywords[i] == id) {
+                    t.set("KEYWORD", id);
+                    break;
+                }
+        }
+
         // enteros
-        if (isdigit(currChar()))
+        else if (isdigit(currChar()))
         {
             std::string entero(1,ch);
             while (isdigit(moveChar())) {
-                entero += (char)currChar();
+                entero += currChar();
             }
             if (entero[0] == '0' && entero.size() > 1)
                 throwError("Un entero mayor que 0 no puede empezar con 0");
@@ -82,7 +106,7 @@ Token Scanner::nextToken()
         }
 
         // cadenas
-        if (ch == '\"')
+        else if (ch == '\"')
         {
             bool not_recognized = false;
             std::string cadena;
@@ -104,7 +128,7 @@ Token Scanner::nextToken()
         }
 
         // operadores y delimitadores
-        switch (ch)
+        else switch (ch)
         {
         case '+': t.set("BIN_OP","+"); moveChar(); break;
         case '*': t.set("BIN_OP","*"); moveChar(); break;

@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 class Scanner
 {

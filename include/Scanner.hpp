@@ -20,6 +20,7 @@ private:
     // flags
     bool debug;     // indica modo debug
     bool eof;       // indica fin de input_file
+    bool is_logic;  // indica si la linea actual es logica
 
     void throwError(std::string msg);
     void nextLine();

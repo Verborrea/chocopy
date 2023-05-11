@@ -17,6 +17,8 @@ Scanner::Scanner(std::string filepath, bool d_mode)
     line_count = 1;
     token_row = 0;
     token_col = 0;
+    is_logic = false;
+    eof = false;
 }
 
 Scanner::~Scanner()
@@ -59,6 +61,14 @@ Token Scanner::nextToken()
 {
     Token t;
 
+    char ch = (char)currChar();
+
+    // whitespace
+    while (ch == ' ')
+    {
+        ch = (char)moveChar();
+    }
+
     token_col = line_pos + 1;
     token_row = line_count;
 
@@ -68,8 +78,10 @@ Token Scanner::nextToken()
     }
     else if (currChar() == NEWLINE)
     {
-        t.set("NEWLINE","");
+        if (is_logic)
+            t.set("NEWLINE","");
         moveChar();
+        is_logic = false;
     }
     else if (currChar() == '#')
     {
@@ -77,8 +89,6 @@ Token Scanner::nextToken()
     }
     else
     {
-        char ch = (char)currChar();
-
         // ids & keywords
         if (isalpha(currChar()))
         {
@@ -186,17 +196,20 @@ Token Scanner::nextToken()
             else
                 t.set("BIN_OP",">");
             break;
-        // default:
-        //     t.set("CHAR",std::string(1, ch));
-        //     moveChar();
+        default:
+            throwError(std::string(1,ch) + " no reconocido");
+            moveChar();
         }
     }
 
     if (t.pos == "")
         return nextToken();
-    else if (debug)
-        std::cout << t.pos << "\t[" << t.lex << "]\t found at (" <<
-        token_row << ":" << token_col << ")" << std::endl;
+    else {
+        is_logic = (t.pos != "NEWLINE");
+        if (debug)
+            std::cout << t.pos << "\t[" << t.lex << "]\t found at (" <<
+            token_row << ":" << token_col << ")" << std::endl;
+    }
 
     return t;
 }

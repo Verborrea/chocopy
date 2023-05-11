@@ -71,6 +71,10 @@ Token Scanner::nextToken()
         t.set("NEWLINE","");
         moveChar();
     }
+    else if (currChar() == '#')
+    {
+        while (moveChar() != NEWLINE);
+    }
     else
     {
         char ch = (char)currChar();

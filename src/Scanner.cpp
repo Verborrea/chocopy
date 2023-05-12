@@ -13,23 +13,32 @@ Scanner::Scanner(std::string filepath, bool d_mode)
 {
     input_file.open(filepath);
     nextLine();
-    debug = d_mode;
     line_count = 1;
     token_row = 0;
     token_col = 0;
+    tab_size = 0;
+    indents.push(0);
+    indent_level = 0;
+
+    // set flags
+    debug = d_mode;
     is_logic = false;
     eof = false;
+    validating = false;
+    is_first = false;
 }
 
 Scanner::~Scanner()
 {
     input_file.close();
+    indents.pop();
 }
 
 void Scanner::throwError(std::string msg)
 {
-    std::cerr << "Error: " << msg << ". found at: (" <<
-    token_row << ":" << token_col << ")" << std::endl;
+    if (!validating)
+        std::cerr << "Error: " << msg << ". found at: (" <<
+        token_row << ":" << token_col << ")" << std::endl;
 }
 
 void Scanner::nextLine()
@@ -38,6 +47,42 @@ void Scanner::nextLine()
     line_count++;
     if (!std::getline(input_file, current_line))
         eof = true;
+}
+
+bool Scanner::validateLogic()
+{
+    validating = true;
+    debug = false;
+    int backup = line_pos;
+    bool result = true;
+
+    if (currChar() == NEWLINE)
+        result = false;
+    else if (nextToken().pos == "")
+        result = false;
+
+    validating = false;
+    debug = true;
+    line_pos = backup;
+    return result;
+}
+
+void Scanner::getIndentLevel()
+{
+    indent_level = indents.top();
+    size_t space_counter = 0;
+    for (line_pos = 0; currChar() == 32; space_counter++)
+        moveChar();
+
+    // calcular el indent_level o establecer el tab_size
+    if (validateLogic()) {
+        if (tab_size == 0)
+            tab_size = space_counter;
+        indent_level = space_counter / tab_size;
+    // indicar error si el numero de espacios no es multiplo
+        if (space_counter % tab_size)
+            throwError("Indentacion inadecuada");
+    }
 }
 
 inline int Scanner::currChar()
@@ -61,6 +106,11 @@ Token Scanner::nextToken()
 {
     Token t;
 
+    if (!validating && is_first) {
+        getIndentLevel();
+        is_first = false;
+    }
+
     char ch = (char)currChar();
 
     // whitespace
@@ -72,7 +122,20 @@ Token Scanner::nextToken()
     token_col = line_pos + 1;
     token_row = line_count;
 
-    if (currChar() == EOF)
+    if (indent_level != indents.top())
+    {
+        if (indent_level > indents.top())
+        {
+            t.set("INDENT","");
+            indents.push(indent_level);
+        }
+        else
+        {
+            t.set("DEDENT","");
+            indents.pop();
+        }
+    }
+    else if (currChar() == EOF)
     {
         t.set("EOF","EOF");
     }
@@ -82,6 +145,7 @@ Token Scanner::nextToken()
             t.set("NEWLINE","");
         moveChar();
         is_logic = false;
+        is_first = true;
     }
     else if (currChar() == '#')
     {
@@ -202,8 +266,11 @@ Token Scanner::nextToken()
         }
     }
 
-    if (t.pos == "")
+    if (t.pos == "") {
+        if (validating)
+            return Token("","");
         return nextToken();
+    }
     else {
         is_logic = (t.pos != "NEWLINE");
         if (debug)

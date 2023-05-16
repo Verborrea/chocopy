@@ -27,7 +27,7 @@ private:
     bool eof;        // indica fin de input_file
     bool is_logic;   // indica si la linea actual es logica
     bool validating; // indica que hay una posible indentacion
-    bool is_first;
+    bool is_first;   // indica el primer token de una nueva linea
 
     void throwError(std::string msg);
     void nextLine();
@@ -40,10 +40,12 @@ private:
 public:
     static const int NEWLINE = -2;
 
-    Scanner(std::string filepath, bool d_mode);
+    Scanner();
     ~Scanner();
 
     Token nextToken();
+    void setFile(std::string path);
+    bool setDebugMode(bool mode);
 };
 
 #endif // SCANNER_HPP

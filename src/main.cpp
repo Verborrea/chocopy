@@ -1,4 +1,4 @@
-#include "Scanner.hpp"
+#include "Parser.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -19,13 +19,9 @@ int main(int argc, char *argv[])
         debug = true;
     }
 
-    Scanner S(input_file, debug);
-
-    Token t = S.nextToken();
-    while (t.pos != "EOF")
-    {
-        t = S.nextToken();
-    } 
+    Parser P(argv[1], debug);
+    if (P.parse())
+        std::cout << "\e[0;32mExito\e[0m" << std::endl;
 
     return 0;
 }

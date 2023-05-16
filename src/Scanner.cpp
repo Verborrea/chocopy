@@ -9,10 +9,8 @@ std::vector<std::string> keywords = {
     "return", "try", "while", "with", "yield"
 };
 
-Scanner::Scanner(std::string filepath, bool d_mode)
+Scanner::Scanner()
 {
-    input_file.open(filepath);
-    nextLine();
     line_count = 1;
     token_row = 0;
     token_col = 0;
@@ -21,7 +19,7 @@ Scanner::Scanner(std::string filepath, bool d_mode)
     indent_level = 0;
 
     // set flags
-    debug = d_mode;
+    debug = false;
     is_logic = false;
     eof = false;
     validating = false;
@@ -32,6 +30,17 @@ Scanner::~Scanner()
 {
     input_file.close();
     indents.pop();
+}
+
+void Scanner::setFile(std::string path)
+{
+    input_file.open(path);
+    nextLine();
+}
+
+bool Scanner::setDebugMode(bool mode)
+{
+    debug = mode;
 }
 
 void Scanner::throwError(std::string msg)

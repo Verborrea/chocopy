@@ -37,8 +37,8 @@ Scanner::~Scanner()
 void Scanner::throwError(std::string msg)
 {
     if (!validating)
-        std::cerr << "Error: " << msg << ". found at: (" <<
-        token_row << ":" << token_col << ")" << std::endl;
+        std::cerr << "\x1B[31mError: " << msg << ". found at: (" <<
+        token_row << ":" << token_col << ")\033[0m" << std::endl;
 }
 
 void Scanner::nextLine()
@@ -52,6 +52,7 @@ void Scanner::nextLine()
 bool Scanner::validateLogic()
 {
     validating = true;
+    bool d_mode = debug;
     debug = false;
     int backup = line_pos;
     bool result = true;
@@ -62,7 +63,7 @@ bool Scanner::validateLogic()
         result = false;
 
     validating = false;
-    debug = true;
+    debug = d_mode;
     line_pos = backup;
     return result;
 }

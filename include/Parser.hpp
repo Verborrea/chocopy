@@ -10,7 +10,11 @@ class Parser
     
     void throwError(std::string msg);
 
+    bool cexpr_3();
+    bool cexpr_2();
+    bool cexpr();
     bool binOp();
+    bool literal();
 public:
     Parser(std::string filepath, bool d_mode);
 

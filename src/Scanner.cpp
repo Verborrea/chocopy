@@ -38,7 +38,7 @@ void Scanner::setFile(std::string path)
     nextLine();
 }
 
-bool Scanner::setDebugMode(bool mode)
+void Scanner::setDebugMode(bool mode)
 {
     debug = mode;
 }

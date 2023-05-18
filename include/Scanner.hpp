@@ -45,7 +45,7 @@ public:
 
     Token nextToken();
     void setFile(std::string path);
-    bool setDebugMode(bool mode);
+    void setDebugMode(bool mode);
 };
 
 #endif // SCANNER_HPP

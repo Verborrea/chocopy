@@ -10,11 +10,23 @@ class Parser
     
     void throwError(std::string msg);
 
-    bool cexpr_3();
-    bool cexpr_2();
-    bool cexpr();
-    bool binOp();
+    // bool list(bool (*item)(), std::string lookahead);
+    // bool listTail(bool (*item)(), std::string lookahead);
+
+    // bool cexpr_3();
+    // bool cexpr_2();
+    // bool cexpr();
+    bool expr();
+
+    bool name();
+    bool nameTail();
+
+    bool list();
+    bool exprList();
+    bool exprListTail();
+
     bool literal();
+    bool compOp();
 public:
     Parser(std::string filepath, bool d_mode);
 

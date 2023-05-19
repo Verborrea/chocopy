@@ -11,74 +11,115 @@ void Parser::throwError(std::string msg)
     std::cerr << "\x1B[31mError: " << msg << "\033[0m" << std::endl;
 }
 
-bool Parser::binOp()
+bool Parser::compOp()
 {
-    if (current.pos == "BIN_OP" || current.lex == "IS") {
+    bool comp_op = false;
+
+    comp_op |= current.lex == "==";
+    comp_op |= current.lex == "!=";
+    comp_op |= current.lex == "<";
+    comp_op |= current.lex == ">";
+    comp_op |= current.lex == "<=";
+    comp_op |= current.lex == ">=";
+    comp_op |= current.lex == "is";
+
+    if (comp_op)
         current = scanner.nextToken();
-        return true;
-    }
-    return false;
+    return comp_op;
 }
 
 bool Parser::literal()
 {
-    bool is_literal = false;
+    bool literal = false;
+    
+    literal |= current.lex == "True";
+    literal |= current.lex == "False";
+    literal |= current.lex == "None";
+    literal |= current.pos == "INTEGER";
+    literal |= current.pos == "STRING";
 
-    is_literal |= current.pos == "INTEGER";
-    is_literal |= current.pos == "STRING";
-    is_literal |= current.lex == "None";
-    is_literal |= current.lex == "True";
-    is_literal |= current.lex == "False";
-
-    if (is_literal) {
+    if (literal)
         current = scanner.nextToken();
-        return true;
+    return literal;
+}
+
+bool Parser::exprListTail()
+{
+    if (current.pos == "COMMA") {
+        current = scanner.nextToken();
+        if (expr())
+            if (exprListTail())
+                return true;
+        else {
+            throwError("lista no puede terminar en coma");
+            return false;
+        }
     }
-    throwError(current.lex + " is not a literal");
+    else if (current.pos == "CLO_BRA")
+        return true;
     return false;
 }
 
-bool Parser::cexpr_3()
+bool Parser::exprList()
 {
-    if (current.lex == "-") {
+    if (expr())
+        if (exprListTail())
+            return true;
+    else if (current.pos == "CLO_BRA")
+        return true;
+    return false;
+}
+
+bool Parser::list()
+{
+    if (current.pos == "OPEN_BRA") { // [3,2,1]
         current = scanner.nextToken();
-        return cexpr_3();
+        if (exprList()) {
+            if (current.pos == "CLO_BRA") {
+                current = scanner.nextToken();
+                return true;
+            }
+            throwError("lista no cerrada");
+            return false;
+        }
     }
+    
+    return false;
+}
+
+bool Parser::nameTail()
+{
+    if (list())
+        return true;
+    if (current.pos == "OPEN_PAR") {
+        current = scanner.nextToken();
+        if (exprList()) {
+            if (current.pos == "CLO_PAR") {
+                current = scanner.nextToken();
+                return true;
+            }
+        }
+        throwError("parentesis no cerrados");
+        return false;
+    }
+    // comprobar follow
+
+    return false;
+}
+
+bool Parser::name()
+{
     if (current.pos == "IDNTF") {
         current = scanner.nextToken();
-        return true;
+        return nameTail();
     }
-    if (literal())
-        return true;
-    throwError("not valid cexpr3");
-    return false;
-}
-
-bool Parser::cexpr_2()
-{
-    if (binOp() && cexpr_3()) {
-        return cexpr_2();
-    }
-    else {
-        if (current.pos == "NEWLINE")
-            return true;
-    }
-    throwError("not valid cexpr2");
-    return false;
-}
-
-bool Parser::cexpr()
-{
-    if (cexpr_3() && cexpr_2())
-        return true;
-    throwError("not valid cexpr");
     return false;
 }
 
 bool Parser::parse()
 {
     current = scanner.nextToken();
-    if (cexpr() && current.pos == "NEWLINE")
+    if (expr() && current.pos == "NEWLINE")
         return true;  
     std::cout << "Error de sintaxis" << std::endl;
     return false;

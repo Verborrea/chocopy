@@ -53,7 +53,7 @@ bool Parser::orExprPrime()
         if (andExpr()) {
             return orExprPrime();
         }
-        throwError("expected andExpr");
+        throwError("expected expr after or");
         return false;
     }
     // comprobar follow
@@ -79,7 +79,7 @@ bool Parser::andExprPrime()
         if (notExpr()) {
             return andExprPrime();
         }
-        throwError("expected notExpr");
+        throwError("expected expr after and");
         return false;
     }
     // comprobar follow
@@ -113,7 +113,7 @@ bool Parser::compExprPrime()
         if (intExpr()) {
             return compExprPrime();
         }
-        throwError("expected intTerm");
+        throwError("expected expr after compOp");
         return false;
     }
     // comprobar follow
@@ -139,7 +139,7 @@ bool Parser::intExprPrime()
         if (term()) {
             return intExprPrime();
         }
-        throwError("expected term");
+        throwError("expected expr after +/-");
         return false;
     }
     // comprobar follow
@@ -167,7 +167,7 @@ bool Parser::termPrime()
         if (factor()) {
             return termPrime();
         }
-        throwError("expected factor");
+        throwError("expected expr after operation");
         return false;
     }
     // comprobar follow
@@ -206,7 +206,7 @@ bool Parser::factor()
         throwError("parentesis no cerrados");
         return false;
     }
-    throwError("expected factor");
+    // throwError("expected factor");
     return false;
 }
 
@@ -242,7 +242,7 @@ bool Parser::nameTail()
     if (current.pos == "NEWLINE" || current.lex == "=" ||
         current.lex == ":" || current.pos == "CLOSE_PAR")
         return true;
-    for (int i = 0; i < 13; i++)
+    for (int i = 0; i < 16; i++)
         if (current.lex == follow[i])
             return true;
     return false;

@@ -10,13 +10,21 @@ class Parser
     
     void throwError(std::string msg);
 
-    // bool list(bool (*item)(), std::string lookahead);
-    // bool listTail(bool (*item)(), std::string lookahead);
-
-    // bool cexpr_3();
-    // bool cexpr_2();
-    // bool cexpr();
     bool expr();
+    bool exprPrime();
+    bool orExpr();
+    bool orExprPrime();
+    bool andExpr();
+    bool andExprPrime();
+    bool notExpr();
+
+    bool compExpr();
+    bool compExprPrime();
+    bool intExpr();
+    bool intExprPrime();
+    bool term();
+    bool termPrime();
+    bool factor();
 
     bool name();
     bool nameTail();

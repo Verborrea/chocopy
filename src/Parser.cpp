@@ -11,6 +11,314 @@ void Parser::throwError(std::string msg)
     std::cerr << "\x1B[31mError: " << msg << "\033[0m" << std::endl;
 }
 
+bool Parser::program()
+{
+    return defList() && statementList();
+}
+
+bool Parser::defList()
+{
+    if (def() && defList())
+        return true;
+    // follow
+    std::string follow[] = {"if","while","for","pass","return","not",
+    "-","(","None","True","False","["};
+    if (current.pos == "INTEGER" || current.pos == "STRING" ||
+        current.pos == "IDNTF")
+        return true;
+    for (int i = 0; i < 12; i++)
+        if (current.lex == follow[i])
+            return true;
+    return false;
+}
+
+bool Parser::def()
+{
+    if (current.lex == "def") {
+        current = scanner.nextToken();
+        if (current.pos == "IDNTF") {
+            current = scanner.nextToken();
+            if (current.pos == "OPEN_PAR") {
+                current = scanner.nextToken();
+                if (typedVarList()) {
+                    if (current.pos == "CLO_PAR") {
+                        current = scanner.nextToken();
+                        if (return_()) {
+                            if (current.pos == "TWO_DOTS") {
+                                current = scanner.nextToken();
+                                if (block())
+                                    return true;
+                                throwError("expected block");
+                            }
+                        }
+                        throwError("expected :");
+                    }
+                }
+                throwError("expected )");
+            }
+            throwError("expected (");
+        }
+        throwError("expected ID");
+    }
+    return false;
+}
+
+bool Parser::typedVar()
+{
+    if (current.pos == "IDNTF") {
+        current = scanner.nextToken();
+        if (current.pos == "TWO_DOTS") {
+            current = scanner.nextToken();
+            if (type())
+                return true;
+            throwError("expected type");
+        }
+        throwError("expected : after ID");
+    }
+    return false;
+}
+
+bool Parser::type()
+{
+    if (current.lex == "int"|| current.lex == "str") {
+        current = scanner.nextToken();
+        return true;
+    }
+    if (current.pos == "OPEN_BRA") {
+        current = scanner.nextToken();
+        if (type()) {
+            if (current.pos == "CLO_PAR") {
+                current = scanner.nextToken();
+                return true;
+            }
+        }
+        throwError("expected [");
+    }
+    return false;
+}
+
+bool Parser::typedVarList()
+{
+    if (typedVar()) {
+        if (typedVarListTail())
+            return true;
+        throwError("expected typedVarListTail");
+    }
+    if (current.pos == "CLO_PAR")
+        return true;
+    return false;
+}
+
+bool Parser::typedVarListTail()
+{
+    if (current.pos == "COMMA") {
+        current = scanner.nextToken();
+        if (typedVar()) {
+            if (typedVarListTail())
+                return true;
+            throwError("expected typedVarListTail");
+        }
+    }
+    if (current.pos == "CLO_PAR")
+        return true;
+    return false;
+}
+
+bool Parser::return_()
+{
+    if (current.pos == "ARROW") {
+        current = scanner.nextToken();
+        if (type())
+            return true;
+        throwError("expected type");
+    }
+    // follow
+    if (current.pos == "TWO_DOTS")
+        return true;
+
+    return false;
+}
+
+bool Parser::block()
+{
+    if (current.pos == "NEWLINE") {
+        current = scanner.nextToken();
+        if (current.pos == "INDENT") {
+            current = scanner.nextToken();
+            if (statement() && statementList()) {
+                if (current.pos == "DEDENT") {
+                    current = scanner.nextToken();
+                    return true;
+                }
+                throwError("expected DEDENT");
+            }
+            throwError("expected statements");
+        }
+        throwError("expected INDENT");
+    }
+    throwError("expected NEWLINE");
+    return false;
+}
+
+bool Parser::statementList()
+{
+    if (statement() && statementList())
+        return true;
+    // follow
+    if (current.pos == "EOF" || current.pos == "DEDENT")
+        return true;
+    return false;
+}
+
+bool Parser::statement()
+{
+    if (current.lex == "if") {
+        current = scanner.nextToken();
+        if (expr()) {
+            if (current.pos == "TWO_DOTS") {
+                current = scanner.nextToken();
+                if (block() && elifList() && else_())
+                    return true;
+                throwError("expected block after expr:");
+            }
+            throwError("expected : after expr");
+        }
+        throwError("expected expr after if");
+    }
+    if (current.lex == "while") {
+        current = scanner.nextToken();
+        if (expr()) {
+            if (current.pos == "TWO_DOTS") {
+                current = scanner.nextToken();
+                if (block())
+                    return true;
+                throwError("expected block after expr:");
+            }
+            throwError("expected : after expr");
+        }
+        throwError("expected expr after while");
+    }
+    if (current.lex == "for") {
+        current = scanner.nextToken();
+        if (current.pos == "IDNTF") {
+            current = scanner.nextToken();
+            if (current.lex == "in") {
+                current = scanner.nextToken();
+                if (expr()) {
+                    if (current.pos == "TWO_DOTS") {
+                        current = scanner.nextToken();
+                        if (block())
+                            return true;
+                        throwError("expected block after expr:");
+                    }
+                    throwError("expected : after expr");
+                }
+                throwError("expected expr");
+            }
+            throwError("expected 'in' at for");
+        }
+        throwError("expected <id> after for");
+    }
+    if (simpleStatement()) {
+        if (current.pos == "NEWLINE") {
+            current = scanner.nextToken();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Parser::elifList()
+{
+    if (elif() && elifList())
+        return true;
+    // follow
+
+    return false;
+}
+
+bool Parser::elif()
+{
+    if (current.lex == "elif") {
+        current = scanner.nextToken();
+        if (expr()) {
+            if (current.pos == "TWO_DOTS") {
+                current = scanner.nextToken();
+                if (block())
+                    return true;
+                throwError("expected block after :");
+            }
+            throwError(": expected after expr in elif");
+        }
+        throwError("expr expected after elif");
+    }
+    return false;
+}
+
+bool Parser::else_()
+{
+    if (current.lex == "else") {
+        current = scanner.nextToken();
+        if (current.pos == "TWO_DOTS") {
+            current = scanner.nextToken();
+            if (block())
+                return true;
+            throwError("expected block after else");
+        }
+        throwError(": expected after else");
+    }
+    // // follow
+    // std::string follow[] = {"if","not","-","break","return","while","for"};
+    // if (current.pos == "NEWLINE" || current.pos == "OPEN_PAR" ||
+    //     current.pos == "DEDENT"  || current.pos == "IDNTF")
+    //     return true;
+    // for (int i = 0; i < 3; i++)
+    //     if (current.lex == follow[i])
+    //         return true;
+    return false;
+}
+
+bool Parser::simpleStatement()
+{
+    if (expr() && sstail())
+        return true;
+    if (current.lex == "pass") {
+        current = scanner.nextToken();
+        return true;
+    }
+    if (current.lex == "return") {
+        current = scanner.nextToken();
+        return returnExpr();
+    }
+    return false;
+}
+
+bool Parser::sstail()
+{
+    if (current.pos == "ASSING") {
+        current = scanner.nextToken();
+        if (expr())
+            return true;
+        throwError("expr expected after =");
+        return false;
+    }
+    // comprobar follow
+    if (current.pos == "NEWLINE")
+        return true;
+    return false;
+}
+
+bool Parser::returnExpr()
+{
+    if (expr()) {
+        return true;
+    }
+    // comprobar follow
+    if (current.pos == "NEWLINE")
+        return true;
+    return false;
+}
+
 bool Parser::expr()
 {
     return orExpr() && exprPrime();
@@ -35,8 +343,8 @@ bool Parser::exprPrime()
         }
     }
     // comprobar follow
-    if (current.pos == "NEWLINE" || current.lex == "=" ||
-        current.lex == ":" || current.pos == "CLOSE_PAR")
+    if (current.pos == "NEWLINE"||current.lex == "="||current.lex == ":"
+     || current.lex == ")" || current.lex == "]" || current.lex == ",")
         return true;
     return false;
 }
@@ -57,11 +365,11 @@ bool Parser::orExprPrime()
         return false;
     }
     // comprobar follow
-    std::string follow[] = {"if","else"};
-    if (current.pos == "NEWLINE" || current.lex == "=" ||
-        current.lex == ":" || current.pos == "CLOSE_PAR")
+    std::string follow[] = {"if","else",","};
+    if (current.pos == "NEWLINE"||current.lex == "="||
+        current.lex == ":" || current.lex == ")" || current.lex == "]")
         return true;
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
         if (current.lex == follow[i])
             return true;
     return false;
@@ -83,11 +391,11 @@ bool Parser::andExprPrime()
         return false;
     }
     // comprobar follow
-    std::string follow[] = {"if","else","or"};
-    if (current.pos == "NEWLINE" || current.lex == "=" ||
-        current.lex == ":" || current.pos == "CLOSE_PAR")
+    std::string follow[] = {"if","else","or",","};
+    if (current.pos == "NEWLINE"||current.lex == "="||
+        current.lex == ":" || current.lex == ")" || current.lex == "]")
         return true;
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
         if (current.lex == follow[i])
             return true;
     return false;
@@ -117,11 +425,11 @@ bool Parser::compExprPrime()
         return false;
     }
     // comprobar follow
-    std::string follow[] = {"if","else","or","and"};
-    if (current.pos == "NEWLINE" || current.lex == "=" ||
-        current.lex == ":" || current.pos == "CLOSE_PAR")
+    std::string follow[] = {"if","else","or","and",","};
+    if (current.pos == "NEWLINE"||current.lex == "="||
+        current.lex == ":" || current.lex == ")" || current.lex == "]")
         return true;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 5; i++)
         if (current.lex == follow[i])
             return true;
     return false;
@@ -144,12 +452,12 @@ bool Parser::intExprPrime()
     }
     // comprobar follow
     std::string follow[] = {
-        "if","else","or","and","==","!=",">=","<=","<",">","is"
+        "if","else","or","and","==","!=",">=","<=","<",">","is",","
     };
-    if (current.pos == "NEWLINE" || current.lex == "=" ||
-        current.lex == ":" || current.pos == "CLOSE_PAR")
+    if (current.pos == "NEWLINE"||current.lex == "="||
+        current.lex == ":" || current.lex == ")" || current.lex == "]")
         return true;
-    for (int i = 0; i < 11; i++)
+    for (int i = 0; i < 12; i++)
         if (current.lex == follow[i])
             return true;
     return false;
@@ -172,12 +480,12 @@ bool Parser::termPrime()
     }
     // comprobar follow
     std::string follow[] = {
-        "if","else","or","and","==","!=",">=","<=","<",">","is","+","-"
+        "if","else","or","and","==","!=",">=","<=","<",">","is","+","-",","
     };
     if (current.pos == "NEWLINE" || current.lex == "=" ||
-        current.lex == ":" || current.pos == "CLOSE_PAR")
+        current.lex == ":" || current.lex == ")" || current.lex == "]")
         return true;
-    for (int i = 0; i < 13; i++)
+    for (int i = 0; i < 14; i++)
         if (current.lex == follow[i])
             return true;
     return false;
@@ -237,12 +545,12 @@ bool Parser::nameTail()
     // comprobar follow
     std::string follow[] = {
         "if","else","or","and","==","!=",">=","<=","<",">","is","+","-",
-        "*","//","%"
+        "*","//","%",","
     };
-    if (current.pos == "NEWLINE" || current.lex == "=" ||
-        current.lex == ":" || current.pos == "CLOSE_PAR")
+    if (current.pos == "NEWLINE"||current.lex == "="||
+        current.lex == ":" || current.lex == ")" || current.lex == "]")
         return true;
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 17; i++)
         if (current.lex == follow[i])
             return true;
     return false;
@@ -279,14 +587,12 @@ bool Parser::exprListTail()
 {
     if (current.pos == "COMMA") {
         current = scanner.nextToken();
-        if (expr()) {
-            return exprListTail();
-        } else {
-            throwError("lista no puede terminar en coma");
-            return false;
-        }
+        if (expr() && exprListTail())
+            return true;
+        throwError("lista no puede terminar en coma");
+        return false;
     }
-    else if (current.pos == "CLO_BRA")
+    else if (current.pos == "CLO_BRA" || current.pos == "CLO_PAR")
         return true;
     return false;
 }
@@ -326,7 +632,7 @@ bool Parser::compOp()
 bool Parser::parse()
 {
     current = scanner.nextToken();
-    if (expr() && current.pos == "NEWLINE")
+    if (program() && current.pos == "EOF")
         return true;  
     std::cout << "Error de sintaxis" << std::endl;
     return false;

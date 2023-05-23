@@ -10,6 +10,29 @@ class Parser
     
     void throwError(std::string msg);
 
+    bool program();
+    
+    bool defList();
+    bool def();
+
+    bool typedVar();
+    bool type();
+    bool typedVarList();
+    bool typedVarListTail();
+
+    bool return_();
+
+    bool block();
+    bool statementList();
+    bool statement();
+    bool elifList();
+    bool elif();
+    bool else_();
+
+    bool simpleStatement();
+    bool sstail();
+    bool returnExpr();
+
     bool expr();
     bool exprPrime();
     bool orExpr();

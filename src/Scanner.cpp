@@ -6,12 +6,12 @@ std::vector<std::string> keywords = {
     "def", "del", "elif", "else", "except", "finally",
     "for", "from", "global", "if", "import", "in", "is",
     "lambda", "nonlocal", "not", "or", "pass", "raise",
-    "return", "try", "while", "with", "yield"
+    "return", "try", "while", "with", "yield","int","str"
 };
 
 Scanner::Scanner()
 {
-    line_count = 1;
+    line_count = 0;
     token_row = 0;
     token_col = 0;
     tab_size = 0;

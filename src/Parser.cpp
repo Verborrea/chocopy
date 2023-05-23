@@ -20,11 +20,11 @@ bool Parser::defList()
 {
     if (def() && defList())
         return true;
-    // follow
+    // comprobar follow
     std::string follow[] = {"if","while","for","pass","return","not",
     "-","(","None","True","False","["};
     if (current.pos == "INTEGER" || current.pos == "STRING" ||
-        current.pos == "IDNTF")
+        current.pos == "IDNTF" || current.pos == "EOF")
         return true;
     for (int i = 0; i < 12; i++)
         if (current.lex == follow[i])
@@ -132,7 +132,7 @@ bool Parser::return_()
             return true;
         throwError("expected type");
     }
-    // follow
+    // comprobar follow
     if (current.pos == "TWO_DOTS")
         return true;
 
@@ -164,7 +164,7 @@ bool Parser::statementList()
 {
     if (statement() && statementList())
         return true;
-    // follow
+    // comprobar follow
     if (current.pos == "EOF" || current.pos == "DEDENT")
         return true;
     return false;
@@ -179,7 +179,7 @@ bool Parser::statement()
                 current = scanner.nextToken();
                 if (block() && elifList() && else_())
                     return true;
-                throwError("expected block after expr:");
+                throwError("expected block,elif,else after expr:");
             }
             throwError("expected : after expr");
         }
@@ -232,8 +232,15 @@ bool Parser::elifList()
 {
     if (elif() && elifList())
         return true;
-    // follow
-
+    // comprobar follow
+    std::string follow[] = {"if","while","for","pass","return","not",
+    "-","(","None","True","False","[","else"};
+    if (current.pos == "INTEGER" || current.pos == "STRING" ||
+        current.pos == "IDNTF")
+        return true;
+    for (int i = 0; i < 13; i++)
+        if (current.lex == follow[i])
+            return true;
     return false;
 }
 
@@ -246,9 +253,9 @@ bool Parser::elif()
                 current = scanner.nextToken();
                 if (block())
                     return true;
-                throwError("expected block after :");
+                throwError("expected block after : in elif");
             }
-            throwError(": expected after expr in elif");
+            throwError("expected : after expr in elif");
         }
         throwError("expr expected after elif");
     }
@@ -267,14 +274,15 @@ bool Parser::else_()
         }
         throwError(": expected after else");
     }
-    // // follow
-    // std::string follow[] = {"if","not","-","break","return","while","for"};
-    // if (current.pos == "NEWLINE" || current.pos == "OPEN_PAR" ||
-    //     current.pos == "DEDENT"  || current.pos == "IDNTF")
-    //     return true;
-    // for (int i = 0; i < 3; i++)
-    //     if (current.lex == follow[i])
-    //         return true;
+    // comprobar follow
+    std::string follow[] = {"if","while","for","pass","return","not",
+    "-","(","None","True","False","["};
+    if (current.pos == "INTEGER" || current.pos == "STRING" ||
+        current.pos == "IDNTF")
+        return true;
+    for (int i = 0; i < 12; i++)
+        if (current.lex == follow[i])
+            return true;
     return false;
 }
 

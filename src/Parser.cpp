@@ -2,13 +2,15 @@
 
 Parser::Parser(std::string path, bool d_mode)
 {
+    error = false;
     scanner.setFile(path);
     scanner.setDebugMode(d_mode);
 }
 
 void Parser::throwError(std::string msg)
 {
-    std::cerr << "\x1B[31mError: " << msg << "\033[0m" << std::endl;
+    std::cerr << "\x1B[31mError: " << msg << ". found at: (" <<
+    scanner.token_row << ":" << scanner.token_col << ")\033[0m" << std::endl;
 }
 
 bool Parser::program()
@@ -34,6 +36,7 @@ bool Parser::defList()
 
 bool Parser::def()
 {
+    bool todo_bien = false;
     if (current.lex == "def") {
         current = scanner.nextToken();
         if (current.pos == "IDNTF") {
@@ -46,6 +49,7 @@ bool Parser::def()
                         if (return_()) {
                             if (current.pos == "TWO_DOTS") {
                                 current = scanner.nextToken();
+                                todo_bien = true;
                                 if (block())
                                     return true;
                                 throwError("expected block");
@@ -59,6 +63,19 @@ bool Parser::def()
             throwError("expected (");
         }
         throwError("expected ID");
+
+        if (todo_bien == false) {
+            // avanzar hasta terminar el bloque
+            error = true;
+
+            while(current.pos != "NEWLINE")
+                current = scanner.nextToken();
+            if (block())
+                return true;
+            throwError("expected block");
+
+            return true;
+        }
     }
     return false;
 }
@@ -73,9 +90,20 @@ bool Parser::typedVar()
                 return true;
             throwError("expected type");
         }
-        throwError("expected : after ID");
+        throwError("expected : after ID in typed var");
+    } else {
+        if (current.lex == ")") {
+            throwError("unnecesary comma");
+        } else {
+            throwError("expected valid ID as argument");
+        }
     }
-    return false;
+
+    error = true;
+
+    while(!(current.lex == "," || current.lex == ")"))
+        current = scanner.nextToken();
+    return true;
 }
 
 bool Parser::type()
@@ -94,7 +122,11 @@ bool Parser::type()
         }
         throwError("expected [");
     }
-    return false;
+    error = true;
+    throwError("unvalid type: " + current.lex);
+    while(!(current.lex == "," || current.lex == ")" || current.lex == ":"))
+        current = scanner.nextToken();
+    return true;
 }
 
 bool Parser::typedVarList()
@@ -106,7 +138,9 @@ bool Parser::typedVarList()
     }
     if (current.pos == "CLO_PAR")
         return true;
-    return false;
+    throwError("Paréntesis no cerrado después de la lista de argumentos");
+    error = true;
+    return true;
 }
 
 bool Parser::typedVarListTail()
@@ -121,7 +155,9 @@ bool Parser::typedVarListTail()
     }
     if (current.pos == "CLO_PAR")
         return true;
-    return false;
+    error = true;
+    throwError("Unclosed args list");
+    return true;
 }
 
 bool Parser::return_()
@@ -136,7 +172,11 @@ bool Parser::return_()
     if (current.pos == "TWO_DOTS")
         return true;
 
-    return false;
+    error = true;
+    throwError("unvalid return, did you mean ->?");
+    while(current.pos != "TWO_DOTS")
+        current = scanner.nextToken();
+    return true;
 }
 
 bool Parser::block()
@@ -641,7 +681,8 @@ bool Parser::parse()
 {
     current = scanner.nextToken();
     if (program() && current.pos == "EOF")
-        return true;  
-    std::cout << "Error de sintaxis" << std::endl;
+        if (!error)
+            return true;  
+    std::cerr << "\x1B[31mLa compilcación finalizó con errores :(\033[0m" << std::endl;
     return false;
 }

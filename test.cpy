@@ -1,11 +1,12 @@
-def foo(  x : int , y:  int) -> int :
+def foo(  xd: int , y:  int) -> int :
     if x < y: 
         return x+1
-    elif x > y:
+    elif x > y: 
         return y+1
     else:
         return 0
 
+b = 10
 
 while (a < b):
     a = a * 1

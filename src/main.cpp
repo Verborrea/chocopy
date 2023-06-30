@@ -2,6 +2,8 @@
 
 int main(int argc, char *argv[])
 {
+    setlocale(LC_ALL, "spanish");
+
     if (argc < 2 || argc > 3) {
         std::cout << "usage: ./choco.exe <input_file> [-d]" << std::endl;
         return 1;
@@ -21,7 +23,7 @@ int main(int argc, char *argv[])
 
     Parser P(argv[1], debug);
     if (P.parse())
-        std::cout << "\e[0;32mExito\e[0m" << std::endl;
+        std::cout << "\e[0;32mÉxito\e[0m" << std::endl;
 
     return 0;
 }

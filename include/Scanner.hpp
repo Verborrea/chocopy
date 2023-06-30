@@ -3,6 +3,8 @@
 
 #include "Token.hpp"
 
+#include <locale.h> 
+
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -17,8 +19,6 @@ private:
 
     size_t line_pos;
     size_t line_count;
-    size_t token_row;
-    size_t token_col;
     size_t tab_size;
     int    indent_level;
 
@@ -46,6 +46,9 @@ public:
     Token nextToken();
     void setFile(std::string path);
     void setDebugMode(bool mode);
+
+    size_t token_row;
+    size_t token_col;
 };
 
 #endif // SCANNER_HPP

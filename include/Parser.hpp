@@ -7,6 +7,7 @@ class Parser
 {
     Scanner scanner;
     Token   current;
+    bool    error;
     
     void throwError(std::string msg);
 

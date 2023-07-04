@@ -254,7 +254,7 @@ Token Scanner::nextToken()
                 t.set("BIN_OP","=="); moveChar();
             }
             else
-                t.set("ASSING","=");
+                t.set("ASSIGN","=");
             break;
         case '<':
             if (moveChar() == '=') {

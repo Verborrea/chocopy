@@ -152,7 +152,7 @@ Token Scanner::nextToken()
     else if (currChar() == NEWLINE)
     {
         if (is_logic)
-            t.set("NEWLINE","");
+            t.set("NEWLINE","\\n");
         moveChar();
         is_logic = false;
         is_first = true;

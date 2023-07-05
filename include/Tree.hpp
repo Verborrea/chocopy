@@ -1,3 +1,6 @@
+#ifndef TREE_HPP
+#define TREE_HPP
+
 #include <iostream>
 #include <list>
 #include <string>
@@ -6,7 +9,13 @@ struct Node {
     std::string data;
     std::list<Node*> children;
 
-    Node(std::string value) : data(value) {}
+    Node(std::string value) : data(value) {
+        // std::cout << "Crear " + data << std::endl;
+    }
+
+    // ~Node() {
+    //     std::cout << "Borrar " + data << std::endl;
+    // }
 
     void insert(std::string value) {
         Node* newNode = new Node(value);
@@ -16,6 +25,18 @@ struct Node {
     // child must be already in heap
     void insert(Node *child) {
         children.push_back(child);
+    }
+
+    static void podate(Node* currentNode) {
+        if (currentNode == nullptr) {
+            return;
+        }
+
+        for (Node* child : currentNode->children) {
+            podate(child);
+        }
+
+        delete currentNode;
     }
 };
 
@@ -44,19 +65,9 @@ struct Tree {
         }
     }
 
-    void deleteTree(Node* currentNode) {
-        if (currentNode == nullptr) {
-            return;
-        }
-
-        for (Node* child : currentNode->children) {
-            deleteTree(child);
-        }
-
-        delete currentNode;
-    }
-
     ~Tree() {
-        deleteTree(root);
+        root->podate(root);
     }
 };
+
+#endif // TREE_HPP

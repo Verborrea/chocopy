@@ -88,7 +88,9 @@ Node* Parser::exprList(std::string name)
         return exprList_node;
 
     // error
-    std::vector<std::string> follow = {"NEWLINE","CLO_PAR","CLO_BRA","COMMA"};
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","BIN_OP1"
+    };
     addError("Token inesperado: " + current.lex + ". Dentro de lista");
     goThrough(&follow);
     return new Node("error");
@@ -120,7 +122,9 @@ Node* Parser::nameTail()
 {
     Node *nameTail_node = nullptr;
 
-    std::vector<std::string> follow = {"NEWLINE","CLO_PAR","CLO_BRA","COMMA"};
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","BIN_OP1"
+    };
 
     // NameTail -> ( ExprList )
     if (current.lex == "(") {
@@ -197,27 +201,69 @@ Node* Parser::factor()
         return factor_node;
     }
 
-    std::vector<std::string> follow = {"NEWLINE","CLO_PAR","CLO_BRA","COMMA"};
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","BIN_OP1"
+    };
 
     // Factor -> ( Expr )
-    if (current.lex == "(") {
-        current = scanner.nextToken();
-        Node* expr_node = expr();
-        if (current.lex != ")") {
-            expr_node->podate(expr_node);
-            addError("Token inesperado: " + current.lex + ". Se esperaba )");
-            goThrough(&follow);
-            return new Node("error");
-        }
-        current = scanner.nextToken();
-        return expr_node;
+    if (current.lex != "(") {
+        addError("Token inesperado: " + current.lex + ". Se esperaba expr");
+        goThrough(&follow);
+        return new Node("error");
     }
-    return factor_node;
+
+    current = scanner.nextToken();
+    Node* expr_node = expr();
+
+    if (current.lex != ")") {
+        expr_node->podate(expr_node);
+        addError("Token inesperado: " + current.lex + ". Se esperaba )");
+        goThrough(&follow);
+        return new Node("error");
+    }
+    current = scanner.nextToken();
+    return expr_node;
+}
+
+Node* Parser::termPrime(Node* first)
+{
+    // Term' -> *  Factor Term'
+    // Term' -> // Factor Term'
+    // Term' -> %  Factor Term'
+    if (current.lex == "*" || current.lex == "//" || current.lex == "%") {
+        Node* op = new Node(current.lex);
+        op->insert(first);
+        current = scanner.nextToken();
+        Node* second = factor();
+        op->insert(second);
+
+        Node* termPrime_node = termPrime(op);
+        return termPrime_node;
+    }
+
+    // Term' -> e
+    std::vector<std::string> follow = {"NEWLINE","CLO_PAR","CLO_BRA","COMMA"};
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
+}
+
+Node* Parser::term()
+{
+    // Term -> Factor TermPrime
+    Node *factor_node = factor();
+    Node *term_prime_node = termPrime(factor_node);
+    return term_prime_node;
 }
 
 Node* Parser::expr()
 {
-    return factor();
+    return term();
 }
 
 Node* Parser::assing()
@@ -242,7 +288,7 @@ Node* Parser::assing()
 Node* Parser::program()
 {
     Node* program_node = new Node("PROGRAM");
-    program_node->insert(factor());
+    program_node->insert(expr());
     return program_node;
 }
 

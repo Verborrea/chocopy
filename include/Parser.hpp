@@ -19,6 +19,9 @@ class Parser
     Node* assing();
     Node* expr();
 
+    Node* term();
+    Node* termPrime(Node* first);
+
     Node* factor();
     Node* literal();
     Node* name();

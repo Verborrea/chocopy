@@ -219,8 +219,8 @@ Token Scanner::nextToken()
         else switch (ch)
         {
         case '+': t.set("BIN_OP","+"); moveChar(); break;
-        case '*': t.set("BIN_OP","*"); moveChar(); break;
-        case '%': t.set("BIN_OP","%"); moveChar(); break;
+        case '*': t.set("BIN_OP1","*"); moveChar(); break;
+        case '%': t.set("BIN_OP1","%"); moveChar(); break;
         case '(': t.set("OPEN_PAR","("); moveChar(); break;
         case ')': t.set("CLO_PAR",")"); moveChar(); break;
         case '[': t.set("OPEN_BRA","["); moveChar(); break;
@@ -230,7 +230,7 @@ Token Scanner::nextToken()
         case '.': t.set("DOT","."); moveChar(); break;
         case '/':
             if (moveChar() == '/') {
-                t.set("BIN_OP","//"); moveChar();
+                t.set("BIN_OP1","//"); moveChar();
             }
             else
                 throwError("/ no es un operador válido");

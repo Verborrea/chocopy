@@ -483,6 +483,29 @@ Node* Parser::returnExpr()
     return new Node("error");
 }
 
+Node* Parser::ssTail(Node* first)
+{
+    // SSTail -> = Expr
+    if (current.lex == "=") {
+        Node* assign = new Node(current.lex);
+        assign->insert(first);
+        current = scanner.nextToken();
+        Node* second = expr();
+        assign->insert(second);
+        return assign;
+    }
+    // SSTail -> e
+    std::vector<std::string> follow = {"NEWLINE"};
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
+}
+
 Node* Parser::simpleStatement()
 {
     // SimpleStatement -> pass
@@ -501,11 +524,10 @@ Node* Parser::simpleStatement()
         return return_node;
     }
 
-    std::vector<std::string> follow = {"NEWLINE"};
-    
-    addError("Token inesperado: " + current.lex);
-    goThrough(&follow);
-    return new Node("error");
+    // SimpleStatement -> Expr SSTail
+    Node *expr_node = expr();
+    Node *sstail_node = ssTail(expr_node);
+    return sstail_node;
 }
 
 Node* Parser::program()

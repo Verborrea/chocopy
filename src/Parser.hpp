@@ -18,6 +18,7 @@ class Parser
     Node* program();
 
     Node* simpleStatement();
+    Node* ssTail(Node* first);
     Node* returnExpr();
 
     Node* expr();

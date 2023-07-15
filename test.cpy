@@ -1,1 +1,1 @@
-return [1, "Impar" if (x % 2) else "Par", 3 + 4 * 5]
+x = []

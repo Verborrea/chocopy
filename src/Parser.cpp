@@ -62,18 +62,22 @@ Node* Parser::exprListTail(Node* parent)
         return parent;
     
     // error
-    addError("Token inesperado: " + current.lex);
+    addError("Token inesperado: " + current.lex + " en lista");
     goThrough(&error_follow);
     return new Node("error");
 }
 
 Node* Parser::exprList(std::string name)
 {
-    // ExprList -> Expr ExprListTail
     Node* exprList_node = new Node(name);
 
-    Node* expr_node;
-    if ((expr_node = expr())) {
+    // ExprList -> e
+    if (current.pos == "CLO_BRA" || current.pos == "CLO_PAR")
+        return exprList_node;
+
+    // ExprList -> Expr ExprListTail
+    Node* expr_node = expr();
+    if (expr_node) {
         exprList_node->insert(expr_node);
         // los insert se hacen dentro de exprListTail
         Node* exprListTail_node = exprListTail(exprList_node);
@@ -82,10 +86,6 @@ Node* Parser::exprList(std::string name)
         }
         return exprListTail_node;
     }
-
-    // ExprList -> e
-    if (current.pos == "CLO_BRA" || current.pos == "CLO_PAR")
-        return exprList_node;
 
     // error
     std::vector<std::string> follow = {
@@ -124,7 +124,8 @@ Node* Parser::nameTail()
 
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
-        "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else"
+        "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else",
+        "ASSIGN"
     };
 
     // NameTail -> ( ExprList )
@@ -204,7 +205,8 @@ Node* Parser::factor()
 
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
-        "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else"
+        "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else",
+        "ASSIGN"
     };
 
     // Factor -> ( Expr )
@@ -246,7 +248,8 @@ Node* Parser::termPrime(Node* first)
     // Term' -> e
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
-        "BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else"
+        "BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else",
+        "ASSIGN"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -282,7 +285,8 @@ Node* Parser::intExprPrime(Node* first)
     // IntExpr' -> e
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
-        "BIN_OP3","BIN_OP5","BIN_OP6","if","else"
+        "BIN_OP3","BIN_OP5","BIN_OP6","if","else",
+        "ASSIGN"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -317,7 +321,8 @@ Node* Parser::compExprPrime(Node* first)
     // CompExpr' -> e
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
-        "BIN_OP5","BIN_OP6","if","else"
+        "BIN_OP5","BIN_OP6","if","else",
+        "ASSIGN"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -366,7 +371,8 @@ Node* Parser::andExprPrime(Node* first)
     // andExpr' -> e
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
-        "BIN_OP6","if","else"
+        "BIN_OP6","if","else",
+        "ASSIGN"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -400,7 +406,7 @@ Node* Parser::orExprPrime(Node* first)
 
     // orExpr' -> e
     std::vector<std::string> follow = {
-        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","if","else"
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","if","else","ASSIGN"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -433,7 +439,6 @@ Node* Parser::exprPrime(Node* first)
         if (current.pos == "else") {
             current = scanner.nextToken();
             Node* third = orExpr();
-            std::cout << third->data << std::endl;
             op->insert(third);
         }
 
@@ -441,7 +446,9 @@ Node* Parser::exprPrime(Node* first)
     }
 
     // Expr' -> e
-    std::vector<std::string> follow = {"NEWLINE","CLO_PAR","CLO_BRA","COMMA"};
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","ASSIGN"
+    };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
     }

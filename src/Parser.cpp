@@ -89,7 +89,7 @@ Node* Parser::exprList(std::string name)
 
     // error
     std::vector<std::string> follow = {
-        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","BIN_OP1"
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA"
     };
     addError("Token inesperado: " + current.lex + ". Dentro de lista");
     goThrough(&follow);
@@ -123,7 +123,8 @@ Node* Parser::nameTail()
     Node *nameTail_node = nullptr;
 
     std::vector<std::string> follow = {
-        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","BIN_OP1"
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
+        "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else"
     };
 
     // NameTail -> ( ExprList )
@@ -202,12 +203,13 @@ Node* Parser::factor()
     }
 
     std::vector<std::string> follow = {
-        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","BIN_OP1"
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
+        "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else"
     };
 
     // Factor -> ( Expr )
     if (current.lex != "(") {
-        addError("Token inesperado: " + current.lex + ". Se esperaba expr");
+        addError("Token inesperado: " + current.lex + ". Se esperaba una expresion");
         goThrough(&follow);
         return new Node("error");
     }
@@ -225,6 +227,8 @@ Node* Parser::factor()
     return expr_node;
 }
 
+// ============================================================================
+
 Node* Parser::termPrime(Node* first)
 {
     // Term' -> *  Factor Term'
@@ -236,13 +240,14 @@ Node* Parser::termPrime(Node* first)
         current = scanner.nextToken();
         Node* second = factor();
         op->insert(second);
-
-        Node* termPrime_node = termPrime(op);
-        return termPrime_node;
+        return termPrime(op);
     }
 
     // Term' -> e
-    std::vector<std::string> follow = {"NEWLINE","CLO_PAR","CLO_BRA","COMMA"};
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
+        "BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else"
+    };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
     }
@@ -261,34 +266,274 @@ Node* Parser::term()
     return term_prime_node;
 }
 
-Node* Parser::expr()
+Node* Parser::intExprPrime(Node* first)
 {
-    return term();
+    // IntExpr' -> + Term IntExpr'
+    // IntExpr' -> - Term IntExpr'
+    if (current.lex == "+" || current.lex == "-") {
+        Node* op = new Node(current.lex);
+        op->insert(first);
+        current = scanner.nextToken();
+        Node* second = term();
+        op->insert(second);
+        return intExprPrime(op);
+    }
+
+    // IntExpr' -> e
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
+        "BIN_OP3","BIN_OP5","BIN_OP6","if","else"
+    };
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
 }
 
-Node* Parser::assing()
+Node* Parser::intExpr()
 {
-    if (current.pos != "IDNTF")
-        return new Node("error");
-    current = scanner.nextToken();
+    // IntExpr -> Term IntExprPrime
+    Node *term_node = term();
+    Node *iexpr_prime_node = intExprPrime(term_node);
+    return iexpr_prime_node;
+}
 
-    if (current.pos != "ASSIGN")
-        return new Node("error");
-    current = scanner.nextToken();
+Node* Parser::compExprPrime(Node* first)
+{
+    // CompExpr' -> (< | > | <= | >= | != | == | is) IntExpr CompExpr'
+    if (current.pos == "BIN_OP3") {
+        Node* op = new Node(current.lex);
+        op->insert(first);
+        current = scanner.nextToken();
+        Node* second = intExpr();
+        op->insert(second);
+        return compExprPrime(op);
+    }
 
-    Node* expr_node = expr();  // "a + b"
+    // CompExpr' -> e
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
+        "BIN_OP5","BIN_OP6","if","else"
+    };
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
 
-    Node* assign_node = new Node(":=");
-    assign_node->insert("ID");
-    assign_node->insert(expr_node);
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
+}
 
-    return assign_node;
+Node* Parser::compExpr()
+{
+    // CompExpr -> IntExpr CompExpr'
+    Node *iexpr_node = intExpr();
+    Node *cexpr_prime_node = compExprPrime(iexpr_node);
+    return cexpr_prime_node;
+}
+
+Node* Parser::notExpr()
+{
+    // notExpr -> -notExpr
+    if (current.lex == "not") {
+        current = scanner.nextToken();
+        Node* not_node = new Node("not");
+        not_node->insert(notExpr());
+        return not_node;
+    }
+
+    // notExpr -> CompExpr
+    return compExpr();
+}
+
+Node* Parser::andExprPrime(Node* first)
+{
+    // andExpr' -> and notExpr andExpr'
+    if (current.pos == "BIN_OP5") {
+        Node* op = new Node(current.lex);
+        op->insert(first);
+        current = scanner.nextToken();
+        Node* second = notExpr();
+        op->insert(second);
+        return andExprPrime(op);
+    }
+
+    // andExpr' -> e
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
+        "BIN_OP6","if","else"
+    };
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
+}
+
+Node* Parser::andExpr()
+{
+    // andExpr -> notExpr andExpr'
+    Node *nexpr_node = notExpr();
+    Node *aexpr_prime_node = andExprPrime(nexpr_node);
+    return aexpr_prime_node;
+}
+
+Node* Parser::orExprPrime(Node* first)
+{
+    // orExpr' -> or andExpr orExpr'
+    if (current.pos == "BIN_OP6") {
+        Node* op = new Node(current.lex);
+        op->insert(first);
+        current = scanner.nextToken();
+        Node* second = andExpr();
+        op->insert(second);
+        return orExprPrime(op);
+    }
+
+    // orExpr' -> e
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","if","else"
+    };
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
+}
+
+Node* Parser::orExpr()
+{
+    // orExpr -> andExpr orExpr'
+    Node *andexpr_node = andExpr();
+    Node *orexpr_prime_node = orExprPrime(andexpr_node);
+    return orexpr_prime_node;
+}
+
+Node* Parser::exprPrime(Node* first)
+{
+    // Expr' -> if orExpr else orExpr Expr'
+    if (current.pos == "if") {
+        Node* op = new Node("if-else");
+        op->insert(first);
+        current = scanner.nextToken();
+        Node* second = orExpr();
+        op->insert(second);
+
+        if (current.pos == "else") {
+            current = scanner.nextToken();
+            Node* third = orExpr();
+            std::cout << third->data << std::endl;
+            op->insert(third);
+        }
+
+        return exprPrime(op);
+    }
+
+    // Expr' -> e
+    std::vector<std::string> follow = {"NEWLINE","CLO_PAR","CLO_BRA","COMMA"};
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
+}
+
+Node* Parser::expr()
+{
+    // Expr -> orExpr orExpr'
+    Node *orexpr_node = orExpr();
+    Node *expr_prime_node = exprPrime(orexpr_node);
+    return expr_prime_node;
+}
+
+// ============================================================================
+
+Node* Parser::returnExpr()
+{
+    Node *return_node = nullptr;
+
+    // ReturnExpr -> e
+    std::vector<std::string> follow = {"NEWLINE"};
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return nullptr;
+    }
+
+    // ReturnExpr -> Expr
+    if ((return_node = expr())) {
+        return return_node;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    return_node->podate(return_node);
+    return new Node("error");
+}
+
+Node* Parser::ssTail(Node* first)
+{
+    // SSTail -> = Expr
+    if (current.lex == "=") {
+        Node* assign = new Node(current.lex);
+        assign->insert(first);
+        current = scanner.nextToken();
+        Node* second = expr();
+        assign->insert(second);
+        return assign;
+    }
+    // SSTail -> e
+    std::vector<std::string> follow = {"NEWLINE"};
+    if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
+        return first;
+    }
+
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    first->podate(first);
+    return new Node("error");
+}
+
+Node* Parser::simpleStatement()
+{
+    // SimpleStatement -> pass
+    if (current.pos == "pass") {
+        current = scanner.nextToken();
+        return new Node("pass");
+    }
+
+    // SimpleStatement -> return ReturnExpr
+    if (current.pos == "return") {
+        current = scanner.nextToken();
+        Node* return_node = new Node("return");
+        Node* value = returnExpr();
+        if (value)
+            return_node->insert(value);
+        return return_node;
+    }
+
+    // SimpleStatement -> Expr SSTail
+    Node *expr_node = expr();
+    Node *sstail_node = ssTail(expr_node);
+    return sstail_node;
 }
 
 Node* Parser::program()
 {
     Node* program_node = new Node("PROGRAM");
-    program_node->insert(expr());
+    program_node->insert(simpleStatement());
     return program_node;
 }
 

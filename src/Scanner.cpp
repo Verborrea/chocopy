@@ -1,12 +1,17 @@
 #include "Scanner.hpp"
 
+// std::vector<std::string> keywords = {
+//     "False", "None", "True", "and", "as", "assert",
+//     "async", "await", "break", "class", "continue",
+//     "def", "del", "elif", "else", "except", "finally",
+//     "for", "from", "global", "if", "import", "in", "is",
+//     "lambda", "nonlocal", "not", "or", "pass", "raise",
+//     "return", "try", "while", "with", "yield", "int","str"
+// };
 std::vector<std::string> keywords = {
-    "False", "None", "True", "and", "as", "assert",
-    "async", "await", "break", "class", "continue",
-    "def", "del", "elif", "else", "except", "finally",
-    "for", "from", "global", "if", "import", "in", "is",
-    "lambda", "nonlocal", "not", "or", "pass", "raise",
-    "return", "try", "while", "with", "yield","int","str"
+    "False", "None", "True", "and", "def", "elif", "else",
+    "for", "if", "in", "is", "not", "or", "pass", "return",
+    "while", "int", "str"
 };
 
 Scanner::Scanner()
@@ -173,9 +178,15 @@ Token Scanner::nextToken()
             t.set("IDNTF", id);
             for (size_t i = 0; i < keywords.size(); i++)
                 if (keywords[i] == id) {
-                    t.set("KEYWORD", id);
+                    t.set(id, id);
                     break;
                 }
+            if (id == "is")
+                t.set("BIN_OP3", id);
+            if (id == "and")
+                t.set("BIN_OP5", id);
+            if (id == "or")
+                t.set("BIN_OP6", id);
         }
 
         // enteros
@@ -218,7 +229,7 @@ Token Scanner::nextToken()
         // operadores y delimitadores
         else switch (ch)
         {
-        case '+': t.set("BIN_OP","+"); moveChar(); break;
+        case '+': t.set("BIN_OP2","+"); moveChar(); break;
         case '*': t.set("BIN_OP1","*"); moveChar(); break;
         case '%': t.set("BIN_OP1","%"); moveChar(); break;
         case '(': t.set("OPEN_PAR","("); moveChar(); break;
@@ -237,7 +248,7 @@ Token Scanner::nextToken()
             break;
         case '!':
             if (moveChar() == '=') {
-                t.set("BIN_OP","!="); moveChar();
+                t.set("BIN_OP3","!="); moveChar();
             }
             else
                 throwError("! no es un operador válido");
@@ -247,28 +258,28 @@ Token Scanner::nextToken()
                 t.set("ARROW","->"); moveChar();
             }
             else
-                t.set("BIN_OP","-");
+                t.set("BIN_OP2","-");
             break;
         case '=':
             if (moveChar() == '=') {
-                t.set("BIN_OP","=="); moveChar();
+                t.set("BIN_OP3","=="); moveChar();
             }
             else
                 t.set("ASSIGN","=");
             break;
         case '<':
             if (moveChar() == '=') {
-                t.set("BIN_OP","<="); moveChar();
+                t.set("BIN_OP3","<="); moveChar();
             }
             else
-                t.set("BIN_OP","<");
+                t.set("BIN_OP3","<");
             break;
         case '>':
             if (moveChar() == '=') {
-                t.set("BIN_OP",">="); moveChar();
+                t.set("BIN_OP3",">="); moveChar();
             }
             else
-                t.set("BIN_OP",">");
+                t.set("BIN_OP3",">");
             break;
         default:
             throwError(std::string(1,ch) + " no reconocido");

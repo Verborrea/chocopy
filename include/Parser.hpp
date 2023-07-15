@@ -16,9 +16,22 @@ class Parser
     void goThrough(std::vector<std::string> *follow);
 
     Node* program();
-    Node* assing();
-    Node* expr();
 
+    Node* simpleStatement();
+    Node* ssTail(Node* first);
+    Node* returnExpr();
+
+    Node* expr();
+    Node* exprPrime(Node* first);
+    Node* orExpr();
+    Node* orExprPrime(Node* first);
+    Node* andExpr();
+    Node* andExprPrime(Node* first);
+    Node* notExpr();
+    Node* compExpr();
+    Node* compExprPrime(Node* first);
+    Node* intExpr();
+    Node* intExprPrime(Node* first);
     Node* term();
     Node* termPrime(Node* first);
 

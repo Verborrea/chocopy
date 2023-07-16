@@ -541,15 +541,17 @@ Node* Parser::statement()
 {
     // Statement -> SimpleStatement NEWLINE
     Node *ss_node = simpleStatement();
+    
     if (current.pos == "NEWLINE") {
         current = scanner.nextToken();
         return ss_node;
     }
 
-    // error
-    std::vector<std::string> follow = {"EOF"};
+    // avanzar hasta la próxima línea, podar el nodo y retornar un nodo de error
+    std::vector<std::string> follow = {"NEWLINE"};
     goThrough(&follow);
     current = scanner.nextToken();
+    ss_node->podate(ss_node);
     return new Node("error");
 }
 
@@ -561,15 +563,8 @@ Node* Parser::statementList(Node* parent)
 
     // StatementList ->  Statement StatementList    
     Node* statement_node = statement();
-    if (statement_node->data != "error") {
-        parent->insert(statement_node);
-        return statementList(parent);
-    }
-
-    std::vector<std::string> follow = {"EOF"};
-    addError("Token inesperado: " + current.lex);
-    goThrough(&follow);
-    return new Node("error");
+    parent->insert(statement_node);
+    return statementList(parent);
 }
 
 Node* Parser::program()

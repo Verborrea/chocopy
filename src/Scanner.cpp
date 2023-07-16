@@ -237,7 +237,7 @@ Token Scanner::nextToken()
         case '[': t.set("OPEN_BRA","["); moveChar(); break;
         case ']': t.set("CLO_BRA","]"); moveChar(); break;
         case ',': t.set("COMMA",","); moveChar(); break;
-        case ':': t.set("TWO_DOTS",":"); moveChar(); break;
+        case ':': t.set(":",":"); moveChar(); break;
         case '.': t.set("DOT","."); moveChar(); break;
         case '/':
             if (moveChar() == '/') {

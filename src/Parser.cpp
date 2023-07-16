@@ -125,7 +125,7 @@ Node* Parser::nameTail()
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
         "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else",
-        "ASSIGN"
+        "ASSIGN",":"
     };
 
     // NameTail -> ( ExprList )
@@ -206,7 +206,7 @@ Node* Parser::factor()
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
         "BIN_OP1","BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else",
-        "ASSIGN"
+        "ASSIGN",":"
     };
 
     // Factor -> ( Expr )
@@ -249,7 +249,7 @@ Node* Parser::termPrime(Node* first)
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
         "BIN_OP2","BIN_OP3","BIN_OP5","BIN_OP6","if","else",
-        "ASSIGN"
+        "ASSIGN",":"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -286,7 +286,7 @@ Node* Parser::intExprPrime(Node* first)
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
         "BIN_OP3","BIN_OP5","BIN_OP6","if","else",
-        "ASSIGN"
+        "ASSIGN",":"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -322,7 +322,7 @@ Node* Parser::compExprPrime(Node* first)
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
         "BIN_OP5","BIN_OP6","if","else",
-        "ASSIGN"
+        "ASSIGN",":"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -372,7 +372,7 @@ Node* Parser::andExprPrime(Node* first)
     std::vector<std::string> follow = {
         "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
         "BIN_OP6","if","else",
-        "ASSIGN"
+        "ASSIGN",":"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -406,7 +406,8 @@ Node* Parser::orExprPrime(Node* first)
 
     // orExpr' -> e
     std::vector<std::string> follow = {
-        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","if","else","ASSIGN"
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","if","else",
+        "ASSIGN",":"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -447,7 +448,8 @@ Node* Parser::exprPrime(Node* first)
 
     // Expr' -> e
     std::vector<std::string> follow = {
-        "NEWLINE","CLO_PAR","CLO_BRA","COMMA","ASSIGN"
+        "NEWLINE","CLO_PAR","CLO_BRA","COMMA",
+        "ASSIGN",":"
     };
     if (std::find(follow.begin(), follow.end(), current.pos) != follow.end()) {
         return first;
@@ -539,6 +541,21 @@ Node* Parser::simpleStatement()
 
 Node* Parser::statement()
 {
+    // Statement -> while Expr : Block
+    if (current.pos == "while") {
+        current = scanner.nextToken();
+        Node *while_node = new Node("while");
+        while_node->insert(expr());
+
+        if (current.lex != ":") {
+            addError("Token inesperado: " + current.lex + ". Se esperaba ':'");
+            return new Node("error");
+        }
+        current = scanner.nextToken();
+        while_node->insert(block());
+        return while_node;
+    }
+
     // Statement -> SimpleStatement NEWLINE
     Node *ss_node = simpleStatement();
     
@@ -558,13 +575,47 @@ Node* Parser::statement()
 Node* Parser::statementList(Node* parent)
 {
     // StatementList ->  e
-    if (current.pos == "EOF")
+    if (current.pos == "EOF" || current.pos == "DEDENT")
         return parent;
 
     // StatementList ->  Statement StatementList    
     Node* statement_node = statement();
     parent->insert(statement_node);
     return statementList(parent);
+}
+
+Node* Parser::block()
+{
+    // Block -> NEWLINE INDENT Statement StatementList DEDENT
+    std::vector<std::string> follow = {"NEWLINE"};
+
+    if (current.pos != "NEWLINE") {
+        addError("Token inesperado: " + current.lex + " en bloque");
+        goThrough(&follow);
+        current = scanner.nextToken();
+        return new Node("error");
+    }
+    current = scanner.nextToken();
+
+    if (current.pos != "INDENT") {
+        addError("Token inesperado: " + current.lex +
+        ". Se esperaba un bloque de instrucciones");
+        return new Node("error");
+    }
+    current = scanner.nextToken();
+
+    Node* block = new Node("statements");
+    block->insert(statement());
+    block = statementList(block);
+
+    std::cout << current.pos << std::endl;
+
+    if (current.pos != "DEDENT") {
+        addError("Se esperaba DEDENT");
+        return new Node("error");
+    }
+    current = scanner.nextToken();
+    return block;
 }
 
 Node* Parser::program()

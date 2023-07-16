@@ -62,7 +62,7 @@ Node* Parser::exprListTail(Node* parent)
         return parent;
     
     // error
-    addError("Token inesperado: " + current.lex + " en lista");
+    // addError("Token inesperado: " + current.lex + " en lista");
     goThrough(&error_follow);
     return new Node("error");
 }
@@ -537,10 +537,45 @@ Node* Parser::simpleStatement()
     return sstail_node;
 }
 
+Node* Parser::statement()
+{
+    // Statement -> SimpleStatement NEWLINE
+    Node *ss_node = simpleStatement();
+    if (current.pos == "NEWLINE") {
+        current = scanner.nextToken();
+        return ss_node;
+    }
+
+    // error
+    std::vector<std::string> follow = {"EOF"};
+    goThrough(&follow);
+    current = scanner.nextToken();
+    return new Node("error");
+}
+
+Node* Parser::statementList(Node* parent)
+{
+    // StatementList ->  e
+    if (current.pos == "EOF")
+        return parent;
+
+    // StatementList ->  Statement StatementList    
+    Node* statement_node = statement();
+    if (statement_node->data != "error") {
+        parent->insert(statement_node);
+        return statementList(parent);
+    }
+
+    std::vector<std::string> follow = {"EOF"};
+    addError("Token inesperado: " + current.lex);
+    goThrough(&follow);
+    return new Node("error");
+}
+
 Node* Parser::program()
 {
     Node* program_node = new Node("PROGRAM");
-    program_node->insert(simpleStatement());
+    program_node->insert(statementList(new Node("statements")));
     return program_node;
 }
 
@@ -548,7 +583,7 @@ bool Parser::parse()
 {
     current = scanner.nextToken();
     ast.root = program();
-    if (current.pos != "NEWLINE")
+    if (current.pos != "EOF")
         addError("Token inesperado: " + current.lex + " al final");
     if (errors.size()) {
         for (size_t i = 0; i < errors.size(); i++)

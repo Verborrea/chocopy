@@ -560,6 +560,46 @@ Node* Parser::statement()
         return while_node;
     }
 
+    // Statement -> for ID in Expr : Block
+    if (current.pos == "for") {
+        current = scanner.nextToken();
+        Node *for_node = new Node("for");
+
+        if (current.pos != "IDNTF") {
+            addError("Token inesperado: " + current.lex + ". Se esperaba ID");
+            std::vector<std::string> follow = {"NEWLINE"};
+            goThrough(&follow);
+            current = scanner.nextToken();
+            for_node->podate(for_node);
+            return new Node("error");
+        }
+        for_node->insert(current.lex);
+        current = scanner.nextToken();
+
+        if (current.pos != "in") {
+            addError("Token inesperado: " + current.lex + ". Se esperaba in");
+            std::vector<std::string> follow = {"NEWLINE"};
+            goThrough(&follow);
+            current = scanner.nextToken();
+            for_node->podate(for_node);
+            return new Node("error");
+        }
+        current = scanner.nextToken();
+        for_node->insert(expr());
+
+        if (current.lex != ":") {
+            addError("Token inesperado: " + current.lex + ". Se esperaba ':'");
+            std::vector<std::string> follow = {"NEWLINE"};
+            goThrough(&follow);
+            current = scanner.nextToken();
+            for_node->podate(for_node);
+            return new Node("error");
+        }
+        current = scanner.nextToken();
+        for_node->insert(block());
+        return for_node;
+    }
+
     // Statement -> SimpleStatement NEWLINE
     Node *ss_node = simpleStatement();
     

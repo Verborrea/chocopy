@@ -16,9 +16,10 @@ class Parser
     void goThrough(std::vector<std::string> *follow);
 
     Node* program();
-    Node* block();
+    Node* block(std::string name);
     Node* statementList(Node* parent);
     Node* statement();
+    Node* statement_error(std::string msg, Node* father);
 
     Node* simpleStatement();
     Node* ssTail(Node* first);

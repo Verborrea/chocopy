@@ -539,6 +539,16 @@ Node* Parser::simpleStatement()
     return sstail_node;
 }
 
+Node* Parser::statement_error(std::string msg, Node* father)
+{
+    addError("Token inesperado: " + current.lex + msg);
+    std::vector<std::string> follow = {"NEWLINE"};
+    goThrough(&follow);
+    current = scanner.nextToken();
+    father->podate(father);
+    return new Node("error");
+}
+
 Node* Parser::statement()
 {
     // Statement -> while Expr : Block
@@ -547,16 +557,11 @@ Node* Parser::statement()
         Node *while_node = new Node("while");
         while_node->insert(expr());
 
-        if (current.lex != ":") {
-            addError("Token inesperado: " + current.lex + ". Se esperaba ':'");
-            std::vector<std::string> follow = {"NEWLINE"};
-            goThrough(&follow);
-            current = scanner.nextToken();
-            while_node->podate(while_node);
-            return new Node("error");
-        }
+        if (current.lex != ":")
+            return statement_error(". Se esperaba ':'", while_node);
+
         current = scanner.nextToken();
-        while_node->insert(block());
+        while_node->insert(block("body"));
         return while_node;
     }
 
@@ -565,39 +570,43 @@ Node* Parser::statement()
         current = scanner.nextToken();
         Node *for_node = new Node("for");
 
-        if (current.pos != "IDNTF") {
-            addError("Token inesperado: " + current.lex + ". Se esperaba ID");
-            std::vector<std::string> follow = {"NEWLINE"};
-            goThrough(&follow);
-            current = scanner.nextToken();
-            for_node->podate(for_node);
-            return new Node("error");
-        }
+        if (current.pos != "IDNTF")
+            return statement_error(". Se esperaba ID", for_node);
         for_node->insert(current.lex);
         current = scanner.nextToken();
 
-        if (current.pos != "in") {
-            addError("Token inesperado: " + current.lex + ". Se esperaba in");
-            std::vector<std::string> follow = {"NEWLINE"};
-            goThrough(&follow);
-            current = scanner.nextToken();
-            for_node->podate(for_node);
-            return new Node("error");
-        }
+        if (current.pos != "in")
+            return statement_error(". Se esperaba in", for_node);
         current = scanner.nextToken();
         for_node->insert(expr());
 
-        if (current.lex != ":") {
-            addError("Token inesperado: " + current.lex + ". Se esperaba ':'");
-            std::vector<std::string> follow = {"NEWLINE"};
-            goThrough(&follow);
-            current = scanner.nextToken();
-            for_node->podate(for_node);
-            return new Node("error");
-        }
+        if (current.lex != ":")
+            return statement_error(". Se esperaba ':'", for_node);
         current = scanner.nextToken();
-        for_node->insert(block());
+        for_node->insert(block("body"));
         return for_node;
+    }
+
+    // Statement -> if Expr : Block ElifList Else
+    if (current.pos == "if") {
+        current = scanner.nextToken();
+        Node *if_node = new Node("if");
+        if_node->insert(expr());
+
+        if (current.lex != ":")
+            return statement_error(". Se esperaba ':'", if_node);
+        current = scanner.nextToken();
+        if_node->insert(block("then"));
+
+        if (current.pos == "else") {
+            current = scanner.nextToken();
+            if (current.lex != ":")
+                return statement_error(". Se esperaba ':'", if_node);
+            current = scanner.nextToken();
+            if_node->insert(block("else"));
+        }
+
+        return if_node;
     }
 
     // Statement -> SimpleStatement NEWLINE
@@ -628,7 +637,7 @@ Node* Parser::statementList(Node* parent)
     return statementList(parent);
 }
 
-Node* Parser::block()
+Node* Parser::block(std::string name)
 {
     // Block -> NEWLINE INDENT Statement StatementList DEDENT
     std::vector<std::string> follow = {"NEWLINE"};
@@ -648,11 +657,9 @@ Node* Parser::block()
     }
     current = scanner.nextToken();
 
-    Node* block = new Node("statements");
+    Node* block = new Node(name);
     block->insert(statement());
     block = statementList(block);
-
-    std::cout << current.pos << std::endl;
 
     if (current.pos != "DEDENT") {
         addError("Se esperaba DEDENT");

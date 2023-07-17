@@ -44,7 +44,7 @@ Node* Parser::exprListTail(Node* parent)
 {
     std::vector<std::string> error_follow = {"CLO_PAR","CLO_BRA","NEWLINE"};
 
-    // ExprList -> , Expr ExprListTail
+    // ExprListTail -> , Expr ExprListTail
     if (current.pos == "COMMA") {
         current = scanner.nextToken();
         Node* expr_node;
@@ -57,7 +57,7 @@ Node* Parser::exprListTail(Node* parent)
         return new Node("error");
     }
 
-    // ExprList -> e
+    // ExprListTail -> e
     if (current.pos == "CLO_BRA" || current.pos == "CLO_PAR")
         return parent;
     
@@ -549,6 +549,27 @@ Node* Parser::statement_error(std::string msg, Node* father)
     return new Node("error");
 }
 
+Node* Parser::elifList(Node* parent)
+{
+    // ElifList -> elif Expr : block ElifList
+    if (current.pos == "elif") {
+        Node* elif_node = new Node("elif");
+        parent->insert(elif_node);
+        current = scanner.nextToken();
+        Node* expr_node = expr();
+        if (expr_node) {
+            elif_node->insert(expr_node);
+            if (current.lex != ":")
+                return statement_error(". Se esperaba ':'", elif_node);
+            current = scanner.nextToken();
+            elif_node->insert(block("then"));
+            return elifList(parent);
+        }
+        return statement_error(". Se esperaba expr", elif_node);
+    }
+    return parent;
+}
+
 Node* Parser::statement()
 {
     // Statement -> while Expr : Block
@@ -597,6 +618,8 @@ Node* Parser::statement()
             return statement_error(". Se esperaba ':'", if_node);
         current = scanner.nextToken();
         if_node->insert(block("then"));
+
+        if_node = elifList(if_node);
 
         if (current.pos == "else") {
             current = scanner.nextToken();

@@ -20,6 +20,7 @@ class Parser
     Node* statementList(Node* parent);
     Node* statement();
     Node* statement_error(std::string msg, Node* father);
+    Node* elifList(Node* parent);
 
     Node* simpleStatement();
     Node* ssTail(Node* first);

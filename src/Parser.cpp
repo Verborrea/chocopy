@@ -549,6 +549,10 @@ Node* Parser::statement()
 
         if (current.lex != ":") {
             addError("Token inesperado: " + current.lex + ". Se esperaba ':'");
+            std::vector<std::string> follow = {"NEWLINE"};
+            goThrough(&follow);
+            current = scanner.nextToken();
+            while_node->podate(while_node);
             return new Node("error");
         }
         current = scanner.nextToken();

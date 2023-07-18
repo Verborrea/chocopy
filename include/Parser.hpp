@@ -17,6 +17,14 @@ class Parser
 
     Node* program();
     Node* block(std::string name);
+    Node* defList(Node* parent);
+    Node* def();
+
+    Node* type();
+    Node* typedVar();
+    Node* typedVarList();
+    Node* typedVarListTail(Node* parent);
+
     Node* statementList(Node* parent);
     Node* statement();
     Node* statement_error(std::string msg, Node* father);

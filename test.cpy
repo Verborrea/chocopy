@@ -1,10 +1,12 @@
-x = 0
-if x < 10:
-    x = x + 5
-    pass
-elif x > 20:
-    pass
-elif x > 15:
-    a = 2 + 2
-else:
-    y = 0
+def sumar( a : int, b : int ) -> str:
+    x = a + 3
+    return a + b
+
+def restar( a : int, b : int ) -> int:
+    return a - b
+
+sumar(3,4)
+restar("hola", adios)
+
+while True:
+    a[1] = 2 + 3

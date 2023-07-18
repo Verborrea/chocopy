@@ -692,9 +692,177 @@ Node* Parser::block(std::string name)
     return block;
 }
 
+// ============================================================================
+
+Node* Parser::type()
+{
+    // Type -> int | str
+    if (current.pos == "int" || current.pos == "str") {
+        std::string _type = current.pos;
+        current = scanner.nextToken();
+        return new Node(_type);
+    }
+    std::vector<std::string> follow = {"CLO_BRA","COMMA",":"};
+
+    // Type -> [ Type ]
+    if (current.lex != "[") {
+        addError("Token inesperado: " + current.lex + ". Se esperaba un tipo");
+        goThrough(&follow);
+        return new Node("error");
+    }
+
+    Node* type_node = new Node("array");
+    current = scanner.nextToken();
+    Node* inner_node = type();
+
+    if (current.lex != "]") {
+        type_node->podate(type_node);
+        inner_node->podate(inner_node);
+        addError("Token inesperado: " + current.lex + ". Se esperaba ]");
+        goThrough(&follow);
+        return new Node("error");
+    }
+    current = scanner.nextToken();
+    type_node->insert(inner_node);
+    return type_node;
+}
+
+Node* Parser::typedVar()
+{
+    // TypedVar -> ID : Type
+    std::vector<std::string> follow = {"CLO_BRA","COMMA"};
+    if (current.pos != "IDNTF") {
+        addError("Token inesperado: " + current.lex + ". Se esperaba un ID");
+        goThrough(&follow);
+        return new Node("error");
+    }
+    Node* tvar_node = new Node("param");
+    tvar_node->insert(new Node(current.lex));
+    current = scanner.nextToken();
+    if (current.lex != ":") {
+        tvar_node->podate(tvar_node);
+        addError("Token inesperado: " + current.lex + ". Se esperaba ':'");
+        goThrough(&follow);
+        return new Node("error");
+    }
+    current = scanner.nextToken();
+    tvar_node->insert(type());
+    return tvar_node;
+}
+
+Node* Parser::typedVarListTail(Node* parent)
+{
+    std::vector<std::string> error_follow = {"CLO_PAR","NEWLINE"};
+
+    // TypedVarListTail -> , TypedVar TypedVarListTail
+    if (current.pos == "COMMA") {
+        current = scanner.nextToken();
+        Node* tvar_node;
+        if ((tvar_node = typedVar())) {
+            parent->insert(tvar_node);
+            return typedVarListTail(parent);
+        }
+        addError("Token inesperado: " + current.lex + " despues de ,");
+        goThrough(&error_follow);
+        return new Node("error");
+    }
+
+    // TypedVarListTail -> e
+    if (current.pos == "CLO_PAR")
+        return parent;
+    
+    // error
+    // addError("Token inesperado: " + current.lex + " en lista");
+    goThrough(&error_follow);
+    return new Node("error");
+}
+
+Node* Parser::typedVarList()
+{
+    Node* tvarList_node = new Node("parámetros");
+
+    // TypedVarList -> e
+    if (current.pos == "CLO_PAR")
+        return tvarList_node;
+
+    // TypedVarList -> TypedVar TypedVarListTail
+    Node* tvar_node = typedVar();
+    if (tvar_node) {
+        tvarList_node->insert(tvar_node);
+        // los insert se hacen dentro de tvarListTail
+        Node* tvarListTail_node = typedVarListTail(tvarList_node);
+        if (tvarListTail_node->data == "error") {
+            tvarList_node->podate(tvarList_node);
+        }
+        return tvarListTail_node;
+    }
+
+    // error
+    std::vector<std::string> follow = {
+        "NEWLINE","CLO_PAR","COMMA"
+    };
+    addError("Token inesperado: " + current.lex + ". Dentro de parámetros");
+    goThrough(&follow);
+    return new Node("error");
+}
+
+Node* Parser::def()
+{
+    // Def -> def ID ( TypedVarList ) Return : Block
+    if (current.pos == "def") {
+        current = scanner.nextToken();
+        Node *def_node = new Node("función");
+
+        if (current.pos != "IDNTF")
+            return statement_error(". Se esperaba un ID", def_node);
+        def_node->data = current.lex;
+        current = scanner.nextToken();
+
+        if (current.lex != "(")
+            return statement_error(". Se esperaba (", def_node);
+        current = scanner.nextToken();
+        def_node->insert(typedVarList());
+
+        if (current.lex != ")")
+            return statement_error(". Se esperaba )", def_node);
+        current = scanner.nextToken();
+
+        if (current.lex == "->") {
+            current = scanner.nextToken();
+            Node* return_type = new Node("return");
+            return_type->insert(type());
+            def_node->insert(return_type);
+        }
+
+        if (current.lex != ":")
+            return statement_error(". Se esperaba :", def_node);
+        current = scanner.nextToken();        
+
+        def_node->insert(block("body"));
+        return def_node;
+    }
+
+    // avanzar hasta la próxima línea y retornar un nodo de error
+    std::vector<std::string> follow = {"NEWLINE"};
+    goThrough(&follow);
+    current = scanner.nextToken();
+    return new Node("error");
+}
+
+Node* Parser::defList(Node* parent)
+{
+    // DefList -> Def DefList
+    if (current.pos == "def") {
+        parent->insert(def());
+        return defList(parent);
+    }
+    return parent;
+}
+
 Node* Parser::program()
 {
     Node* program_node = new Node("PROGRAM");
+    program_node->insert(defList(new Node("funciones")));
     program_node->insert(statementList(new Node("statements")));
     return program_node;
 }

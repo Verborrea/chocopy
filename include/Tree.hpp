@@ -10,12 +10,12 @@ struct Node {
     std::list<Node*> children;
 
     Node(std::string value) : data(value) {
-        std::cout << "Crear " + data << std::endl;
+        // std::cout << "Crear " + data << std::endl;
     }
 
-    ~Node() {
-        std::cout << "Borrar " + data << std::endl;
-    }
+    // ~Node() {
+    //     std::cout << "Borrar " + data << std::endl;
+    // }
 
     void insert(std::string value) {
         Node* newNode = new Node(value);
